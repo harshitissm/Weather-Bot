@@ -1,7 +1,7 @@
 package com.bot.cloudy.service;
 
 import com.bot.cloudy.model.Subscription;
-import org.json.JSONObject;
+import com.bot.cloudy.utility.JsonConverter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.env.Environment;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -67,7 +67,7 @@ public class CloudyBot extends AbilityBot {
                     chatStates.remove(chatId);
                     try {
                         String weatherJson = weatherService.getWeatherByCity(messageText);
-                        String message = buildWeatherUpdateMessage(weatherJson);
+                        String message = JsonConverter.convertWeatherJsonToMessage(weatherJson);
                         sendMessage(chatId, message);
                     } catch (Exception e) {
                         sendMessage(chatId, "Error fetching weather data.");
@@ -94,28 +94,6 @@ public class CloudyBot extends AbilityBot {
                 sendMessage(user.getUserId(), "Error fetching weather for " + user.getState());
             }
         }
-    }
-
-    private String buildWeatherUpdateMessage(String weatherJson) {
-        JSONObject jsonObject = new JSONObject(weatherJson);
-
-        // Extract relevant weather details
-        JSONObject location = jsonObject.getJSONObject("location");
-        JSONObject current = jsonObject.getJSONObject("current");
-
-        String cityName = location.getString("name");
-        String country = location.getString("country");
-        int temperature = current.getInt("temperature");
-        int feelsLike = current.getInt("feelslike");
-        String weatherDescription = current.getJSONArray("weather_descriptions").getString(0);
-
-        return String.format(
-                "🌤 Weather Update for %s, %s:\n" +
-                        "🌡 Temperature: %d°C\n" +
-                        "🤔 Feels Like: %d°C\n" +
-                        "🌦 Condition: %s",
-                cityName, country, temperature, feelsLike, weatherDescription
-        );
     }
 
     private void sendMessage(long chatId, String text) {
