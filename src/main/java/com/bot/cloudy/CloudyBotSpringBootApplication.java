@@ -13,7 +13,6 @@ import org.telegram.telegrambots.updatesreceivers.DefaultBotSession;
 
 @SpringBootApplication
 @EnableMongoAuditing
-@PropertySource("classpath:application-local.properties")
 public class CloudyBotSpringBootApplication {
 
     public static void main(String[] args) throws TelegramApiException {
