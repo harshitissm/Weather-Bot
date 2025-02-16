@@ -2,6 +2,8 @@ package com.bot.cloudy.service;
 
 import com.bot.cloudy.model.Subscription;
 import com.bot.cloudy.utility.JsonConverter;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.env.Environment;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -17,6 +19,8 @@ import java.util.Map;
 
 @Component
 public class CloudyBot extends AbilityBot {
+
+    private static final Logger logger = LoggerFactory.getLogger(CloudyBot.class);
 
     private final SubscriptionService subscriptionService;
     private final WeatherService weatherService;
@@ -78,20 +82,27 @@ public class CloudyBot extends AbilityBot {
                     sendMessage(chatId, "Subscribed to daily weather updates for " + messageText + ".");
                 }
             } catch (Exception e) {
+                logger.error("An Error occurred while receiving daily weather", e);
                 sendMessage(chatId, "An error occurred.");
             }
         }
     }
 
-    @Scheduled(cron = "0 30 9 * * *")
+    @Scheduled(cron = "0 30 9 * * *", zone = "Asia/Kolkata")
     public void sendDailyWeatherUpdates() {
+        logger.info("Scheduled task started: sendDailyWeatherUpdates()");
+
         List<Subscription> users = subscriptionService.getAllUsers();
         for (Subscription user : users) {
+            Long userId = user.getUserId();
+            String state = user.getState();
             try {
-                var weather = weatherService.getWeatherByCity(user.getState());
-                sendMessage(user.getUserId(), "Daily weather update for " + user.getState() + ": " + weather + "°C");
+                String weather = weatherService.getWeatherByCity(state);
+                String weatherMessage = JsonConverter.convertWeatherJsonToMessage(weather);
+                sendMessage(userId, weatherMessage);
             } catch (Exception e) {
-                sendMessage(user.getUserId(), "Error fetching weather for " + user.getState());
+                logger.error("An Error occurred while sending daily weather update for user: {}", userId, e);
+                sendMessage(userId, "Error fetching weather for " + state);
             }
         }
     }
@@ -103,7 +114,7 @@ public class CloudyBot extends AbilityBot {
         try {
             execute(message);
         } catch (TelegramApiException e) {
-            e.printStackTrace();
+            logger.error("An Error occurred while sending message to Cloudy", e);
         }
     }
 }
